@@ -91,9 +91,8 @@ function Portfolio() {
       description: editPortfolioDescription,
     };
 
-    // Use PATCH (partial update) or PUT (full update). We'll do PATCH here:
     fetch(`http://127.0.0.1:8000/api/portfolios/${editPortfolioId}/`, {
-      method: 'PATCH',
+      method: 'PATCH', // or PUT if you prefer
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Token ${localStorage.getItem('token')}`,
@@ -126,7 +125,11 @@ function Portfolio() {
   // 4) Delete Portfolio
   // ------------------------------------------------------------
   const handleDeletePortfolio = (portfolioId) => {
-    if (!window.confirm('Are you sure you want to delete this portfolio? This will remove all stocks in it.')) {
+    if (
+      !window.confirm(
+        'Are you sure you want to delete this portfolio? This will remove all stocks in it.'
+      )
+    ) {
       return;
     }
 
@@ -165,7 +168,9 @@ function Portfolio() {
           }
           return res.json();
         })
-        .then((data) => setSearchResults((prev) => ({ ...prev, [portfolioId]: data })))
+        .then((data) =>
+          setSearchResults((prev) => ({ ...prev, [portfolioId]: data }))
+        )
         .catch(console.error);
     } else {
       // If the search query is too short, clear the search results
@@ -220,7 +225,7 @@ function Portfolio() {
   // ------------------------------------------------------------
   // 6) Delete Stock
   // ------------------------------------------------------------
-  // If your backend wants the 1-based index for the stock in that portfolio, do (index+1).
+  // If your backend expects the 1-based index for the stock in that portfolio, use (index+1)
   const handleDeleteStock = (portfolioId, index) => {
     fetch(`http://127.0.0.1:8000/api/portfolios/${portfolioId}/${index + 1}/`, {
       method: 'DELETE',
@@ -293,7 +298,7 @@ function Portfolio() {
               backgroundColor: '#fff',
             }}
           >
-            {/* If this portfolio is in "edit" mode, show input fields; otherwise, show read-only */}
+            {/* Edit or view mode for the portfolio */}
             {isEditing ? (
               <>
                 <input
@@ -308,7 +313,10 @@ function Portfolio() {
                   onChange={(e) => setEditPortfolioDescription(e.target.value)}
                   style={{ marginRight: '10px', marginBottom: '10px' }}
                 />
-                <button onClick={handleSavePortfolio} style={{ marginRight: '10px' }}>
+                <button
+                  onClick={handleSavePortfolio}
+                  style={{ marginRight: '10px' }}
+                >
                   Save
                 </button>
                 <button onClick={handleCancelEdit}>Cancel</button>
@@ -338,12 +346,14 @@ function Portfolio() {
                 type="text"
                 placeholder="Search stock to add..."
                 value={searchQuery[portfolio.id] || ''}
-                onChange={(e) => handleSearchChange(portfolio.id, e.target.value)}
+                onChange={(e) =>
+                  handleSearchChange(portfolio.id, e.target.value)
+                }
                 style={{ padding: '8px', width: '100%', marginBottom: '10px' }}
               />
             </div>
 
-            {/* Search results */}
+            {/* Display search results */}
             {searchResults[portfolio.id]?.length > 0 && (
               <div>
                 <h5>Search Results</h5>
@@ -351,7 +361,9 @@ function Portfolio() {
                   <div key={stock.id} style={{ marginBottom: '5px' }}>
                     {stock.ticker}{' '}
                     <button
-                      onClick={() => handleAddStockClick(portfolio.id, stock.id)}
+                      onClick={() =>
+                        handleAddStockClick(portfolio.id, stock.id)
+                      }
                     >
                       Add
                     </button>
@@ -360,7 +372,7 @@ function Portfolio() {
               </div>
             )}
 
-            {/* Form for buy_price & shares (only shown for active addition) */}
+            {/* Form for entering buy_price & shares (visible when adding a stock) */}
             {addingStock && addingStock.portfolioId === portfolio.id && (
               <div style={{ marginTop: '10px' }}>
                 <input
@@ -383,30 +395,48 @@ function Portfolio() {
               </div>
             )}
 
+            {/* Display portfolio stocks as cards */}
             <h4>Stocks</h4>
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-              {portfolio.stocks?.map((stock, index) => (
-                <div
-                  key={index}
-                  style={{
-                    flex: '1 1 250px',
-                    border: '1px solid #eee',
-                    padding: '15px',
-                    borderRadius: '10px',
-                    background: '#f9f9f9',
-                  }}
-                >
-                  <strong>{stock.ticker}</strong>
-                  <p>Buy Price: {stock.buy_price}</p>
-                  <p>Shares: {stock.shares}</p>
-                  <button
-                    onClick={() => handleDeleteStock(portfolio.id, index)}
-                    style={{ color: 'red' }}
+              {portfolio.stocks?.map((stock, index) => {
+                // Calculate profit percentage using the buy_price and the latest close price
+                const buyPrice = parseFloat(stock.buy_price);
+                // Use current_close if available; if not, fall back to buyPrice.
+                const currentPrice = stock.current_close
+                  ? parseFloat(stock.current_close)
+                  : buyPrice;
+                const profitPercent =
+                  buyPrice > 0
+                    ? ((currentPrice - buyPrice) / buyPrice) * 100
+                    : 0;
+                const profitColor = profitPercent >= 0 ? 'green' : 'red';
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      flex: '1 1 250px',
+                      border: '1px solid #eee',
+                      padding: '15px',
+                      borderRadius: '10px',
+                      background: '#f9f9f9',
+                    }}
                   >
-                    Delete
-                  </button>
-                </div>
-              ))}
+                    <strong>{stock.ticker}</strong>
+                    <p>Buy Price: {stock.buy_price}</p>
+                    <p>Shares: {stock.shares}</p>
+                    <p style={{ color: profitColor }}>
+                      Profit: {profitPercent.toFixed(2)}%
+                    </p>
+                    <button
+                      onClick={() => handleDeleteStock(portfolio.id, index)}
+                      style={{ color: 'red' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
