@@ -5,6 +5,8 @@ function Portfolio() {
   const [error, setError] = useState(null);
   const [searchResults, setSearchResults] = useState({});
   const [searchQuery, setSearchQuery] = useState({});
+  const [addingStock, setAddingStock] = useState(null); // { portfolioId, stockId }
+  const [formValues, setFormValues] = useState({ buy_price: '', shares: '' });
 
   useEffect(() => {
     fetch('http://127.0.0.1:8000/api/portfolios/', {
@@ -34,12 +36,24 @@ function Portfolio() {
     }
   };
 
-  const handleAddStock = (portfolioId, stockId) => {
+  const handleAddStockClick = (portfolioId, stockId) => {
+    setAddingStock({ portfolioId, stockId });
+    setFormValues({ buy_price: '', shares: '' });
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmitAddStock = () => {
+    const { portfolioId, stockId } = addingStock;
     const payload = {
-      buy_price: 10,
-      shares: 100,
+      buy_price: parseFloat(formValues.buy_price),
+      shares: parseInt(formValues.shares),
     };
-    fetch(`http://127.0.0.1:8000/api/portfolios/${portfolioId}/${stockId}`, {
+
+    fetch(`http://127.0.0.1:8000/api/portfolios/${portfolioId}/${stockId}/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -80,7 +94,6 @@ function Portfolio() {
           <h3>{portfolio.name}</h3>
           <p>{portfolio.description}</p>
 
-          {/* Search bar */}
           <input
             type="text"
             placeholder="Search stock to add..."
@@ -89,16 +102,38 @@ function Portfolio() {
             style={{ padding: '8px', width: '100%', marginBottom: '10px' }}
           />
 
-          {/* Search results */}
           {searchResults[portfolio.id]?.length > 0 && (
             <div>
               <h5>Search Results</h5>
               {searchResults[portfolio.id].map((stock) => (
                 <div key={stock.id} style={{ marginBottom: '5px' }}>
                   {stock.ticker}{' '}
-                  <button onClick={() => handleAddStock(portfolio.id, stock.id)}>Add</button>
+                  <button onClick={() => handleAddStockClick(portfolio.id, stock.id)}>Add</button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Show form when a stock is being added */}
+          {addingStock && addingStock.portfolioId === portfolio.id && (
+            <div style={{ marginTop: '10px' }}>
+              <input
+                type="number"
+                name="buy_price"
+                placeholder="Buy Price"
+                value={formValues.buy_price}
+                onChange={handleFormChange}
+                style={{ marginRight: '10px' }}
+              />
+              <input
+                type="number"
+                name="shares"
+                placeholder="Shares"
+                value={formValues.shares}
+                onChange={handleFormChange}
+                style={{ marginRight: '10px' }}
+              />
+              <button onClick={handleSubmitAddStock}>Submit</button>
             </div>
           )}
 
