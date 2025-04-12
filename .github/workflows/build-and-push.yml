@@ -31,7 +31,7 @@ jobs:
             cd Stock-Market
             git pull origin main
             npm install
-            npm run dev -d 0.0.0.0:80
+            npm run dev -d
             # docker compose pull
             # docker image ls
             # docker compose up -d
