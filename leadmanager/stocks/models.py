@@ -6,6 +6,7 @@ class Stock(models.Model):
     ticker = models.CharField(max_length=10, unique=True)
     company_name = models.CharField(max_length=100)
     series = models.CharField(max_length=10)
+    industry = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return self.ticker
@@ -21,7 +22,6 @@ class StockPrice(models.Model):
     close_price = models.DecimalField(max_digits=15, decimal_places=4, blank=True, null=True)
     VWAP = models.DecimalField(max_digits=15, decimal_places=4, blank=True, null=True)  
     volume = models.BigIntegerField(blank=True, null=True)
-    turnover = models.DecimalField(max_digits=15, decimal_places=4, blank=True, null=True)
 
     class Meta:
         unique_together = ('stock', 'date')  # Ensures one record per day for each stock

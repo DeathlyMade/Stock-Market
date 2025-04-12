@@ -1,17 +1,17 @@
 from rest_framework import serializers
 from stocks.models import Stock, StockPrice, Portfolio, Watchlist, PortfolioStock
 
-# Stock and StockPrice are read-only.
-class StockSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Stock
-        fields = '__all__'
-        read_only_fields = ('ticker', 'company_name', 'series')
-
 class StockPriceSerializer(serializers.ModelSerializer):
-    stock = StockSerializer(read_only=True)
     class Meta:
         model = StockPrice
+        fields = '__all__'
+        read_only_fields = list(fields)  # OR just list all fields manually, safer!
+
+class StockSerializer(serializers.ModelSerializer):
+    prices = StockPriceSerializer(many=True, read_only=True)  # uses related_name='prices'
+
+    class Meta:
+        model = Stock
         fields = '__all__'
         read_only_fields = fields
 
@@ -94,3 +94,4 @@ class WatchlistSerializer(serializers.ModelSerializer):
                 except Stock.DoesNotExist:
                     continue
         return instance
+
