@@ -1,0 +1,12 @@
+services:
+
+  djangoapp:
+    container_name: djangoapp
+    image: deathlymade/stocks:latest
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./leadmanager:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
