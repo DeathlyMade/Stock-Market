@@ -10,7 +10,7 @@ function StockDetail() {
     fetch(`http://127.0.0.1:8000/api/stocks/${id}`, {
       method: 'GET',
       headers: {
-        'Authorization': 'Token 61c91c84f429b78a7f1ed6ae3d54c158bf621d7720d963a12da166c19290d8f8'
+        'Authorization': `Token ${localStorage.getItem('token')}`,
       }
     })
       .then(res => res.json())
