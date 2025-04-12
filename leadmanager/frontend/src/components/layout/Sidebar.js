@@ -28,7 +28,7 @@ function Sidebar() {
   return (
     <aside style={sidebarStyle}>
       <Link to="/stocks" style={linkStyle}>Dashboard</Link>
-      <Link to="/about" style={linkStyle}>Portfolio</Link>
+      <Link to="/portfolios" style={linkStyle}>Portfolio</Link>
       <Link to="/contact" style={linkStyle}>Watchlist</Link>
     </aside>
   );
