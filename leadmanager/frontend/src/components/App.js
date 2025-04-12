@@ -5,7 +5,7 @@ import { HashRouter as Router, Route, Switch, Redirect } from 'react-router-dom'
 import { Provider as AlertProvider } from 'react-alert';
 import AlertTemplate from 'react-alert-template-basic';
 
-import Header from './layout/Header';
+import MainLayout from './layout/MainLayout';
 import Dashboard from './leads/Dashboard';
 import Alerts from './layout/Alerts';
 import Login from './accounts/Login';
@@ -15,6 +15,9 @@ import PrivateRoute from './common/PrivateRoute';
 import { Provider } from 'react-redux';
 import store from '../store';
 import { loadUser } from '../actions/auth';
+import StockList from './Stocks/StockList';
+import StockDetail from './Stocks/StockDetail';
+import Footer from './layout/Footer';
 
 // Alert Options
 const alertOptions = {
@@ -27,27 +30,31 @@ class App extends Component {
     store.dispatch(loadUser());
   }
 
-  render() {
-    return (
-      <Provider store={store}>
-        <AlertProvider template={AlertTemplate} {...alertOptions}>
-          <Router>
-            <Fragment>
-              <Header />
-              <Alerts />
+  // App.js
+render() {
+  return (
+    <Provider store={store}>
+      <AlertProvider template={AlertTemplate} {...alertOptions}>
+        <Router>
+          <Fragment>
+            <Alerts />
+            <MainLayout>
               <div className="container">
                 <Switch>
                   <PrivateRoute exact path="/" component={Dashboard} />
+                  <Route exact path="/stocks" component={StockList} />
+                  <Route exact path="/stocks/:id" component={StockDetail} />
                   <Route exact path="/register" component={Register} />
                   <Route exact path="/login" component={Login} />
                 </Switch>
               </div>
-            </Fragment>
-          </Router>
-        </AlertProvider>
-      </Provider>
-    );
-  }
+            </MainLayout>
+          </Fragment>
+        </Router>
+      </AlertProvider>
+    </Provider>
+  );
+}
 }
 
 ReactDOM.render(<App />, document.getElementById('app'));
