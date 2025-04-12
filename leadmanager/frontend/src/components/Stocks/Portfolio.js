@@ -151,7 +151,7 @@ function Portfolio() {
   };
 
   // ------------------------------------------------------------
-  // 5) Handling search & adding stocks
+  // 5) Handling Search & Adding Stocks
   // ------------------------------------------------------------
   const handleSearchChange = (portfolioId, query) => {
     setSearchQuery((prev) => ({ ...prev, [portfolioId]: query }));
@@ -181,6 +181,16 @@ function Portfolio() {
 
   // Show the form for adding stock (buy_price & shares)
   const handleAddStockClick = (portfolioId, stockId) => {
+    // Check if the stock already exists in the portfolio.
+    const currentPortfolio = portfolios.find((p) => p.id === portfolioId);
+    if (
+      currentPortfolio &&
+      currentPortfolio.stocks &&
+      currentPortfolio.stocks.some((s) => s.id === stockId)
+    ) {
+      alert('This stock is already added in the portfolio.');
+      return;
+    }
     setAddingStock({ portfolioId, stockId });
     setFormValues({ buy_price: '', shares: '' });
   };
@@ -378,12 +388,22 @@ function Portfolio() {
             {searchResults[portfolio.id]?.length > 0 && (
               <div>
                 <h5>Search Results</h5>
-                {searchResults[portfolio.id].map((stock) => (
-                  <div key={stock.id} style={{ marginBottom: '5px' }}>
-                    {stock.ticker}{' '}
-                    <button onClick={() => handleAddStockClick(portfolio.id, stock.id)}>Add</button>
-                  </div>
-                ))}
+                {searchResults[portfolio.id].map((stock) => {
+                  // Check if the stock is already added in this portfolio.
+                  const alreadyAdded = portfolio.stocks?.some((s) => s.id === stock.id);
+                  return (
+                    <div key={stock.id} style={{ marginBottom: '5px' }}>
+                      {stock.ticker}{' '}
+                      {alreadyAdded ? (
+                        <span style={{ color: 'gray', fontStyle: 'italic' }}>Already Added</span>
+                      ) : (
+                        <button onClick={() => handleAddStockClick(portfolio.id, stock.id)}>
+                          Add
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -448,7 +468,10 @@ function Portfolio() {
                     <p style={{ color: profitColor }}>
                       Profit: {profitPercent.toFixed(2)}%
                     </p>
-                    <button onClick={() => handleDeleteStock(portfolio.id, index)} style={{ color: 'red' }}>
+                    <button
+                      onClick={() => handleDeleteStock(portfolio.id, index)}
+                      style={{ color: 'red' }}
+                    >
                       Delete
                     </button>
                   </div>
