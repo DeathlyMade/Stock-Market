@@ -121,7 +121,7 @@ function Watchlist() {
   const [priceChanges, setPriceChanges] = useState({});
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/watchlists/3', {
+    fetch('http://127.0.0.1:8000/api/watchlists/3/', {
       headers: {
         Authorization: `Token ${localStorage.getItem('token')}`,
       },
