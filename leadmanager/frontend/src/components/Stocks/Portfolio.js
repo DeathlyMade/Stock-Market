@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import 'regenerator-runtime/runtime';
 
 function Portfolio() {
   const [portfolios, setPortfolios] = useState([]);
@@ -8,15 +9,20 @@ function Portfolio() {
   const [addingStock, setAddingStock] = useState(null); // { portfolioId, stockId }
   const [formValues, setFormValues] = useState({ buy_price: '', shares: '' });
 
-  useEffect(() => {
+  // Fetch portfolios from backend
+  const fetchPortfolios = () => {
     fetch('http://127.0.0.1:8000/api/portfolios/', {
       headers: {
-        Authorization: `Token ${localStorage.getItem('token')}`,
+        'Authorization': `Token ${localStorage.getItem('token')}`,
       },
     })
       .then((res) => res.json())
       .then(setPortfolios)
       .catch(() => setError('Error fetching portfolios'));
+  };
+
+  useEffect(() => {
+    fetchPortfolios();
   }, []);
 
   const handleSearchChange = (portfolioId, query) => {
@@ -57,22 +63,37 @@ function Portfolio() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Token ${localStorage.getItem('token')}`,
+        'Authorization': `Token ${localStorage.getItem('token')}`,
       },
       body: JSON.stringify(payload),
     })
-      .then(() => window.location.reload())
-      .catch(console.error);
+      .then(async (res) => {
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.detail || 'Error adding stock');
+        }
+        return res.json();
+      })
+      .then(() => {
+        alert('Stock add to portfolio.');
+        // Reload the website on a successful addition
+        window.location.reload();
+      })
+      .catch((err) => alert(err.message));
   };
 
-  const handleDeleteStock = (portfolioId, stockId) => {
-    fetch(`http://127.0.0.1:8000/api/portfolios/${portfolioId}/${stockId}`, {
+  // For deletion, we pass the stock index (1-indexed) as expected by the backend.
+  const handleDeleteStock = (portfolioId, index) => {
+    fetch(`http://127.0.0.1:8000/api/portfolios/${portfolioId}/${index}/`, {
       method: 'DELETE',
       headers: {
-        Authorization: `Token ${localStorage.getItem('token')}`,
+        'Authorization': `Token ${localStorage.getItem('token')}`,
       },
     })
-      .then(() => window.location.reload())
+      .then(() => {
+        alert('Stock removed from portfolio.');
+        window.location.reload();
+      })
       .catch(console.error);
   };
 
@@ -108,7 +129,9 @@ function Portfolio() {
               {searchResults[portfolio.id].map((stock) => (
                 <div key={stock.id} style={{ marginBottom: '5px' }}>
                   {stock.ticker}{' '}
-                  <button onClick={() => handleAddStockClick(portfolio.id, stock.id)}>Add</button>
+                  <button onClick={() => handleAddStockClick(portfolio.id, stock.id)}>
+                    Add
+                  </button>
                 </div>
               ))}
             </div>
@@ -153,7 +176,10 @@ function Portfolio() {
                 <strong>{stock.ticker}</strong>
                 <p>Buy Price: {stock.buy_price}</p>
                 <p>Shares: {stock.shares}</p>
-                <button onClick={() => handleDeleteStock(portfolio.id, stock.id)} style={{ color: 'red' }}>
+                <button
+                  onClick={() => handleDeleteStock(portfolio.id, index + 1)}
+                  style={{ color: 'red' }}
+                >
                   Delete
                 </button>
               </div>
