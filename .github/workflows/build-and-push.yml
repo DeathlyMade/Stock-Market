@@ -1,0 +1,38 @@
+name: Django CI/CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+  deploy-container:
+    needs: build-image
+    runs-on: ubuntu-latest
+    if: ${{ success() }} # ! we only want to deploy if the build was successful
+    steps:
+    - name: executing remote ssh commands
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOST_IP }}
+        username: ${{ secrets.SSH_USERNAME}}
+        key: ${{ secrets.SSH_PASSWORD }}
+        script: |
+            cd Stock-Market
+            git pull origin main
+            npm install
+            npm run dev 0.0.0.0:80
+            docker compose pull
+            docker image ls
+            docker compose up -d
+            docker ps -a
