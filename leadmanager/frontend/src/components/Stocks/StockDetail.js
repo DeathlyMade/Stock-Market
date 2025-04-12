@@ -35,6 +35,8 @@ function StockDetail() {
                 borderColor: '#1a73e8',
                 backgroundColor: 'rgba(26, 115, 232, 0.2)',
                 tension: 0.4, // Smooth curve
+                pointRadius: 0, // Remove data points Remove data points on hover
+                thickness: 1, // Line thickness
               },
             ],
           });
