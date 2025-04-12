@@ -32,7 +32,9 @@ jobs:
             git pull origin main
             npm install
             npm run dev 0.0.0.0:80
-            docker compose pull
-            docker image ls
-            docker compose up -d
-            docker ps -a
+            # docker compose pull
+            # docker image ls
+            # docker compose up -d
+            # docker ps -a
+            cd leadmanager
+            python manage.py runserver
