@@ -38,11 +38,20 @@ class NestedStockSerializer(serializers.ModelSerializer):
 
 # Serializer for the through model PortfolioStock.
 class PortfolioStockSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='stock.id', read_only=True)
     ticker = serializers.CharField(source='stock.ticker')
-
+    current_close = serializers.SerializerMethodField()
+    
     class Meta:
         model = PortfolioStock
-        fields = ['ticker', 'buy_price', 'shares']
+        fields = ['id', 'ticker', 'buy_price', 'shares', 'current_close']
+    
+    def get_current_close(self, obj):
+        latest_price = obj.stock.prices.first()  # Assuming ordering by descending date
+        if latest_price and latest_price.close_price is not None:
+            return latest_price.close_price
+        return None
+
 
 class PortfolioSerializer(serializers.ModelSerializer):
     # Use the through relation to receive nested stock entries.

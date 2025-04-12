@@ -17,6 +17,7 @@ import store from '../store';
 import { loadUser } from '../actions/auth';
 import StockList from './Stocks/StockList';
 import StockDetail from './Stocks/StockDetail';
+import Portfolio from './Stocks/Portfolio';
 import Footer from './layout/Footer';
 
 // Alert Options
@@ -46,6 +47,7 @@ render() {
                   <Route exact path="/stocks/:id" component={StockDetail} />
                   <Route exact path="/register" component={Register} />
                   <Route exact path="/login" component={Login} />
+                  <Route exact path="/portfolios" component={Portfolio}/>
                 </Switch>
               </div>
             </MainLayout>
