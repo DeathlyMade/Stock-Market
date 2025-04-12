@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';  // Import Link from react-router-dom
 import 'regenerator-runtime/runtime';
 
 function Portfolio() {
@@ -248,14 +249,13 @@ function Portfolio() {
   // ------------------------------------------------------------
   const calculatePortfolioProfit = (stocks) => {
     // Total cost: Sum(buy_price * shares)
-    // Total current: Sum(current_close * shares) with fallback
+    // Total current: Sum(current_close * shares) with fallback to buy_price if necessary
     const totalCost = stocks.reduce((acc, stock) => {
       const cost = parseFloat(stock.buy_price) * parseFloat(stock.shares);
       return acc + cost;
     }, 0);
 
     const totalCurrent = stocks.reduce((acc, stock) => {
-      // If no current_close is provided, fallback to buy_price.
       const currentPrice = stock.current_close
         ? parseFloat(stock.current_close)
         : parseFloat(stock.buy_price);
@@ -274,9 +274,7 @@ function Portfolio() {
       <h2 style={{ textAlign: 'center' }}>My Portfolios</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {/* --------------------------------- 
-          CREATE NEW PORTFOLIO FORM
-      --------------------------------- */}
+      {/* CREATE NEW PORTFOLIO FORM */}
       <div
         style={{
           border: '1px solid #ddd',
@@ -304,9 +302,7 @@ function Portfolio() {
         <button onClick={handleCreatePortfolio}>Create Portfolio</button>
       </div>
 
-      {/* --------------------------------- 
-          DISPLAY ALL PORTFOLIOS
-      --------------------------------- */}
+      {/* DISPLAY ALL PORTFOLIOS */}
       {portfolios.map((portfolio) => {
         const isEditing = editPortfolioId === portfolio.id;
         // Calculate overall profit percent for the portfolio
@@ -359,10 +355,7 @@ function Portfolio() {
                     <button onClick={() => handleEditPortfolio(portfolio)} style={{ marginRight: '10px' }}>
                       Edit
                     </button>
-                    <button
-                      onClick={() => handleDeletePortfolio(portfolio.id)}
-                      style={{ color: 'red' }}
-                    >
+                    <button onClick={() => handleDeletePortfolio(portfolio.id)} style={{ color: 'red' }}>
                       Delete
                     </button>
                   </div>
@@ -388,9 +381,7 @@ function Portfolio() {
                 {searchResults[portfolio.id].map((stock) => (
                   <div key={stock.id} style={{ marginBottom: '5px' }}>
                     {stock.ticker}{' '}
-                    <button onClick={() => handleAddStockClick(portfolio.id, stock.id)}>
-                      Add
-                    </button>
+                    <button onClick={() => handleAddStockClick(portfolio.id, stock.id)}>Add</button>
                   </div>
                 ))}
               </div>
@@ -443,16 +434,21 @@ function Portfolio() {
                       background: '#f9f9f9',
                     }}
                   >
-                    <strong>{stock.ticker}</strong>
+                    {/* Make the stock ticker clickable to navigate to StockDetail */}
+                    <strong>
+                      <Link
+                        to={`/stocks/${stock.id}`}
+                        style={{ textDecoration: 'none', color: '#1a73e8' }}
+                      >
+                        {stock.ticker}
+                      </Link>
+                    </strong>
                     <p>Buy Price: {stock.buy_price}</p>
                     <p>Shares: {stock.shares}</p>
                     <p style={{ color: profitColor }}>
                       Profit: {profitPercent.toFixed(2)}%
                     </p>
-                    <button
-                      onClick={() => handleDeleteStock(portfolio.id, index)}
-                      style={{ color: 'red' }}
-                    >
+                    <button onClick={() => handleDeleteStock(portfolio.id, index)} style={{ color: 'red' }}>
                       Delete
                     </button>
                   </div>
