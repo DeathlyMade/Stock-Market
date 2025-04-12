@@ -244,6 +244,29 @@ function Portfolio() {
   };
 
   // ------------------------------------------------------------
+  // Calculate Overall Portfolio Profit (weighted)
+  // ------------------------------------------------------------
+  const calculatePortfolioProfit = (stocks) => {
+    // Total cost: Sum(buy_price * shares)
+    // Total current: Sum(current_close * shares) with fallback
+    const totalCost = stocks.reduce((acc, stock) => {
+      const cost = parseFloat(stock.buy_price) * parseFloat(stock.shares);
+      return acc + cost;
+    }, 0);
+
+    const totalCurrent = stocks.reduce((acc, stock) => {
+      // If no current_close is provided, fallback to buy_price.
+      const currentPrice = stock.current_close
+        ? parseFloat(stock.current_close)
+        : parseFloat(stock.buy_price);
+      const currValue = currentPrice * parseFloat(stock.shares);
+      return acc + currValue;
+    }, 0);
+
+    return totalCost > 0 ? ((totalCurrent - totalCost) / totalCost) * 100 : 0;
+  };
+
+  // ------------------------------------------------------------
   // Render
   // ------------------------------------------------------------
   return (
@@ -286,6 +309,10 @@ function Portfolio() {
       --------------------------------- */}
       {portfolios.map((portfolio) => {
         const isEditing = editPortfolioId === portfolio.id;
+        // Calculate overall profit percent for the portfolio
+        const portfolioProfitPercent = calculatePortfolioProfit(portfolio.stocks || []);
+        const portfolioProfitColor = portfolioProfitPercent >= 0 ? 'green' : 'red';
+        const portfolioStatus = portfolioProfitPercent >= 0 ? 'Up' : 'Down';
 
         return (
           <div
@@ -298,47 +325,50 @@ function Portfolio() {
               backgroundColor: '#fff',
             }}
           >
-            {/* Edit or view mode for the portfolio */}
-            {isEditing ? (
-              <>
-                <input
-                  type="text"
-                  value={editPortfolioName}
-                  onChange={(e) => setEditPortfolioName(e.target.value)}
-                  style={{ marginRight: '10px', marginBottom: '10px' }}
-                />
-                <input
-                  type="text"
-                  value={editPortfolioDescription}
-                  onChange={(e) => setEditPortfolioDescription(e.target.value)}
-                  style={{ marginRight: '10px', marginBottom: '10px' }}
-                />
-                <button
-                  onClick={handleSavePortfolio}
-                  style={{ marginRight: '10px' }}
-                >
-                  Save
-                </button>
-                <button onClick={handleCancelEdit}>Cancel</button>
-              </>
-            ) : (
-              <>
-                <h3>{portfolio.name}</h3>
-                <p>{portfolio.description}</p>
-                <button
-                  onClick={() => handleEditPortfolio(portfolio)}
-                  style={{ marginRight: '10px' }}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDeletePortfolio(portfolio.id)}
-                  style={{ color: 'red' }}
-                >
-                  Delete
-                </button>
-              </>
-            )}
+            {/* Portfolio header with overall profit info */}
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              {isEditing ? (
+                <>
+                  <input
+                    type="text"
+                    value={editPortfolioName}
+                    onChange={(e) => setEditPortfolioName(e.target.value)}
+                    style={{ marginRight: '10px', marginBottom: '10px' }}
+                  />
+                  <input
+                    type="text"
+                    value={editPortfolioDescription}
+                    onChange={(e) => setEditPortfolioDescription(e.target.value)}
+                    style={{ marginRight: '10px', marginBottom: '10px' }}
+                  />
+                  <button onClick={handleSavePortfolio} style={{ marginRight: '10px' }}>
+                    Save
+                  </button>
+                  <button onClick={handleCancelEdit}>Cancel</button>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <h3>{portfolio.name}</h3>
+                    <p>{portfolio.description}</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ color: portfolioProfitColor, fontWeight: 'bold' }}>
+                      Overall: {portfolioProfitPercent.toFixed(2)}% {portfolioStatus}
+                    </p>
+                    <button onClick={() => handleEditPortfolio(portfolio)} style={{ marginRight: '10px' }}>
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeletePortfolio(portfolio.id)}
+                      style={{ color: 'red' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Search bar for adding stocks */}
             <div style={{ marginTop: '15px' }}>
@@ -346,9 +376,7 @@ function Portfolio() {
                 type="text"
                 placeholder="Search stock to add..."
                 value={searchQuery[portfolio.id] || ''}
-                onChange={(e) =>
-                  handleSearchChange(portfolio.id, e.target.value)
-                }
+                onChange={(e) => handleSearchChange(portfolio.id, e.target.value)}
                 style={{ padding: '8px', width: '100%', marginBottom: '10px' }}
               />
             </div>
@@ -360,11 +388,7 @@ function Portfolio() {
                 {searchResults[portfolio.id].map((stock) => (
                   <div key={stock.id} style={{ marginBottom: '5px' }}>
                     {stock.ticker}{' '}
-                    <button
-                      onClick={() =>
-                        handleAddStockClick(portfolio.id, stock.id)
-                      }
-                    >
+                    <button onClick={() => handleAddStockClick(portfolio.id, stock.id)}>
                       Add
                     </button>
                   </div>
@@ -399,16 +423,13 @@ function Portfolio() {
             <h4>Stocks</h4>
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
               {portfolio.stocks?.map((stock, index) => {
-                // Calculate profit percentage using the buy_price and the latest close price
+                // Calculate profit percentage for an individual stock
                 const buyPrice = parseFloat(stock.buy_price);
-                // Use current_close if available; if not, fall back to buyPrice.
                 const currentPrice = stock.current_close
                   ? parseFloat(stock.current_close)
                   : buyPrice;
                 const profitPercent =
-                  buyPrice > 0
-                    ? ((currentPrice - buyPrice) / buyPrice) * 100
-                    : 0;
+                  buyPrice > 0 ? ((currentPrice - buyPrice) / buyPrice) * 100 : 0;
                 const profitColor = profitPercent >= 0 ? 'green' : 'red';
 
                 return (
