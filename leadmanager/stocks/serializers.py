@@ -15,6 +15,19 @@ class StockSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = list(fields)
 
+class StockSerializerBasic(serializers.ModelSerializer):
+    latest_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stock
+        fields = ('id', 'ticker', 'company_name', 'series', 'industry', 'latest_price')
+
+    def get_latest_price(self, obj):
+        latest = obj.prices.first()  # Assumes prices are ordered by '-date'
+        if latest:
+            return StockPriceSerializer(latest).data
+        return None
+
 # For nested representation in Portfolio and Watchlist, we require only the ticker.
 # When creating/updating a Watchlist, the client can send a list of dictionaries with only "ticker"
 class NestedStockSerializer(serializers.ModelSerializer):

@@ -4,6 +4,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .serializers import (
     StockSerializer, 
     StockPriceSerializer, 
+    StockSerializerBasic,
     PortfolioSerializer, 
     WatchlistSerializer,
     NestedStockSerializer,
@@ -22,6 +23,13 @@ class StockViewSet(viewsets.ReadOnlyModelViewSet):
     
     search_fields = ['ticker']            # for ?search=ADANI
     filterset_fields = ['industry']       # for ?industry=Logistics (exact match)
+
+
+    def get_serializer_class(self):
+        if self.request.query_params.get('with_prices') == 'true':
+            return StockSerializer
+        return StockSerializerBasic
+
 
 # Read-only endpoint for StockPrice objects.
 class StockPriceViewSet(viewsets.ReadOnlyModelViewSet):
