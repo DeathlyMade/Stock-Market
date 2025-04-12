@@ -64,8 +64,6 @@ class Command(BaseCommand):
             ticker_from_filename = os.path.splitext(os.path.basename(csv_file))[0].upper()
             if(ticker_from_filename == 'stock_metadata'):
                 continue
-            if(ticker_from_filename != 'MM'):
-                continue
 
             try:
                 with open(csv_file, 'r', encoding='utf-8') as f:

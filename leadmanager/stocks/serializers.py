@@ -13,7 +13,7 @@ class StockSerializer(serializers.ModelSerializer):
     class Meta:
         model = Stock
         fields = '__all__'
-        read_only_fields = fields
+        read_only_fields = list(fields)
 
 # For nested representation in Portfolio and Watchlist, we require only the ticker.
 # When creating/updating a Watchlist, the client can send a list of dictionaries with only "ticker"
