@@ -66,7 +66,7 @@ function StockDetail() {
       })
       .catch((error) => console.error('Error fetching industry data:', error));
   }, []);
-  console.log(stock);
+  
   const handleAddToWatchlist = () => {
     const url = `http://127.0.0.1:8000/api/watchlists/3/${stock.id}/`;
   
