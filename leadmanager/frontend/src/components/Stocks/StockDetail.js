@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Chart, registerables } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Line, Pie, Bar } from 'react-chartjs-2';
 
 Chart.register(...registerables);
 
@@ -9,6 +9,7 @@ function StockDetail() {
   const { id } = useParams();
   const [stock, setStock] = useState(null);
   const [chartData, setChartData] = useState(null);
+  const [industryData, setIndustryData] = useState(null); // Data for pie and bar charts
   const [timeRange, setTimeRange] = useState('1D'); // Default time range is 1 day
   const [isAddedToWatchlist, setIsAddedToWatchlist] = useState(false); // Track watchlist status
 
@@ -31,9 +32,44 @@ function StockDetail() {
       .catch((error) => console.error('Error fetching stock:', error));
   }, [id, timeRange]); // Re-run effect when timeRange changes
 
+  useEffect(() => {
+    // Fetch all stocks to calculate industry-wise performance
+    fetch(`http://127.0.0.1:8000/api/stocks/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${localStorage.getItem('token')}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((stocks) => {
+        const industryMap = {};
+
+        // Group stocks by industry and calculate performance
+        stocks.forEach((stock) => {
+          const industry = stock.industry;
+          const performance = stock.latest_price.close_price - stock.latest_price.prev_close_price;
+
+          if (!industryMap[industry]) {
+            industryMap[industry] = { count: 0, totalPerformance: 0 };
+          }
+
+          industryMap[industry].count += 1;
+          industryMap[industry].totalPerformance += performance;
+        });
+
+        // Prepare data for charts
+        const labels = Object.keys(industryMap);
+        const counts = labels.map((industry) => industryMap[industry].count);
+        const performances = labels.map((industry) => industryMap[industry].totalPerformance);
+
+        setIndustryData({ labels, counts, performances });
+      })
+      .catch((error) => console.error('Error fetching industry data:', error));
+  }, []);
+  console.log(stock);
   const handleAddToWatchlist = () => {
     const url = `http://127.0.0.1:8000/api/watchlists/3/${stock.id}/`;
-
+  
     fetch(url, {
       method: 'POST',
       headers: {
@@ -100,7 +136,7 @@ function StockDetail() {
     });
   };
 
-  if (!stock) return <p style={{ padding: '20px' }}>Loading...</p>;
+  if (!stock || !industryData) return <p style={{ padding: '20px' }}>Loading...</p>;
 
   return (
     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -165,6 +201,88 @@ function StockDetail() {
           </div>
         </div>
       )}
+  
+      {/* Pie Chart and Bar Graph Side-by-Side */}
+<div style={{ marginTop: '40px', display: 'flex', gap: '20px', justifyContent: 'center', width: '100%' }}>
+  {/* Pie Chart */}
+<div style={{ flex: 1, maxWidth: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <h3 style={{ color: '#1a73e8', textAlign: 'center' }}>Industry Distribution</h3>
+  <Pie
+    data={{
+      labels: industryData.labels,
+      datasets: [
+        {
+          data: industryData.counts,
+          backgroundColor: industryData.labels.map(
+            (_, index) => `hsl(${(index * 137.5) % 360}, 70%, 50%)` // Generate contrasting colors using the golden angle
+          ),
+        },
+      ],
+    }}
+    options={{
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        tooltip: {
+          callbacks: {
+            label: (tooltipItem) => {
+              const industry = industryData.labels[tooltipItem.dataIndex];
+              const count = industryData.counts[tooltipItem.dataIndex];
+              return `${industry}: ${count} stocks`;
+            },
+          },
+        },
+      },
+    }}
+  />
+</div>
+
+{/* Bar Graph */}
+<div style={{ flex: 1, maxWidth: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <h3 style={{ color: '#1a73e8', textAlign: 'center' }}>Industry Performance</h3>
+  <Bar
+    data={{
+      labels: industryData.labels,
+      datasets: [
+        {
+          label: `${stock.ticker} Industry Performance`,
+          data: industryData.labels.map((industry) =>
+            industry === stock.industry ? industryData.performances[industryData.labels.indexOf(industry)] : 0
+          ),
+          backgroundColor: '#FF6384', // Highlight color for the current stock's industry
+        },
+        {
+          label: 'Other Industries',
+          data: industryData.labels.map((industry) =>
+            industry !== stock.industry ? industryData.performances[industryData.labels.indexOf(industry)] : 0
+          ),
+          backgroundColor: '#36A2EB', // Color for other industries
+        },
+      ],
+    }}
+    options={{
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top', // Display legends at the top
+        },
+        tooltip: {
+          callbacks: {
+            label: (tooltipItem) => {
+              const industry = industryData.labels[tooltipItem.dataIndex];
+              const performance = industryData.performances[tooltipItem.dataIndex];
+              return `${industry}: ${performance.toFixed(2)} performance`;
+            },
+          },
+        },
+      },
+    }}
+    height={300} // Adjust height to fill the div
+  />
+</div>
+</div>
     </div>
   );
 }
