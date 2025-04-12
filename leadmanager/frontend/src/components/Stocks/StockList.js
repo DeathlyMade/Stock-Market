@@ -92,7 +92,7 @@ function StockList() {
             <h3 style={tickerStyle}>{stock.ticker}</h3>
             <p style={companyStyle}>{stock.company_name}</p>
             <Link
-              to={`/stocks/${stock.id}`}
+              to={`/stocks/${stock.id}?with_prices=true`}
               style={linkStyle}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#1558b0';
