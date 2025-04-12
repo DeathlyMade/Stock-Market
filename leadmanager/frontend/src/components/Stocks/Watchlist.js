@@ -207,6 +207,16 @@ function Watchlist() {
     document.body.removeChild(link);
   };
  
+  const handleDeleteStock = (stockId) => {
+    fetch(`http://127.0.0.1:8000/api/watchlists/3/${stockId}/`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Token ${localStorage.getItem('token')}`,
+      },
+    })
+      .then(() => window.location.reload())
+      .catch(console.error);
+  };
  
 
   return (
