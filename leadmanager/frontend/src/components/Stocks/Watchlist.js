@@ -208,6 +208,7 @@ function Watchlist() {
   };
  
   const handleDeleteStock = (stockId) => {
+    console.log("Deleting stock with ID:", stockId);
     fetch(`http://127.0.0.1:8000/api/watchlists/3/${stockId}/`, {
       method: 'DELETE',
       headers: {
@@ -217,106 +218,64 @@ function Watchlist() {
       .then(() => window.location.reload())
       .catch(console.error);
   };
- 
-
+  
   return (
     <div style={{ padding: '20px' }}>
       <h2 style={{ textAlign: 'center' }}>Watchlist</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <div
-        style={{
-          border: '1px solid #ddd',
-          padding: '20px',
-          borderRadius: '12px',
-          marginBottom: '30px',
-          backgroundColor: '#fff',
-        }}
-      >
-        {/* Search bar */}
-        <input
-          type="text"
-          placeholder="Search stock to add..."
-          value={searchQuery}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          style={{ padding: '8px', width: '100%', marginBottom: '10px' }}
-        />
-
-        {/* Search results */}
-        {searchResults.length > 0 && (
-          <div>
-            <h5>Search Results</h5>
-            {searchResults.map((stock) => (
-              <div key={stock.id} style={{ marginBottom: '5px' }}>
-                {stock.ticker}{' '}
-                <button onClick={() => handleAddStock(stock.id)}>Add</button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <h4>Stocks</h4>
-            <button
-            onClick={() => handleDownloadCSV(stocks)}
-            style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#007bff', color: 'white', borderRadius: '5px', border: 'none' }}
-            >
-            Download CSV
-            </button>
-
-        <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', background: '#f9f9f9' }}>
-            <thead>
+          <thead>
             <tr>
-                <th style={thStyle}>Ticker</th>
-                <th style={thStyle}>Current Price</th>
-                <th style={thStyle}>1 Day Ago</th>
-                <th style={thStyle}>1 Week Ago</th>
-                <th style={thStyle}>1 Month Ago</th>
-                <th style={thStyle}>1 Year Ago</th>
-                <th style={thStyle}>Action</th>
+              <th style={thStyle}>Ticker</th>
+              <th style={thStyle}>Current Price</th>
+              <th style={thStyle}>1 Day Ago</th>
+              <th style={thStyle}>1 Week Ago</th>
+              <th style={thStyle}>1 Month Ago</th>
+              <th style={thStyle}>1 Year Ago</th>
+              <th style={thStyle}>Action</th>
             </tr>
-            </thead>
-            <tbody>
+          </thead>
+          <tbody>
             {stocks?.map((stock, index) => {
-                const priceData = priceChanges[stock.id];
-                const curr = priceData?.[0];
-
-                const renderCell = (pastPrice) => {
+              const priceData = priceChanges[stock.id];
+              const curr = priceData?.[0];
+  
+              const renderCell = (pastPrice) => {
                 if (curr == null || pastPrice == null) return '-';
                 const diff = curr - pastPrice;
                 const percent = ((diff / pastPrice) * 100).toFixed(2);
                 const color = diff > 0 ? 'green' : diff < 0 ? 'red' : 'gray';
                 return (
-                    <>
+                  <>
                     {pastPrice}
                     <span style={{ color, marginLeft: '5px' }}>
-                        ({percent}%)
+                      ({percent}%)
                     </span>
-                    </>
+                  </>
                 );
-                };
-
-                return (
+              };
+  
+              return (
                 <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={tdStyle}><strong>{stock.ticker}</strong></td>
-                    <td style={tdStyle}>{curr ?? '-'}</td>
-                    <td style={tdStyle}>{renderCell(priceData?.[1])}</td>
-                    <td style={tdStyle}>{renderCell(priceData?.[2])}</td>
-                    <td style={tdStyle}>{renderCell(priceData?.[3])}</td>
-                    <td style={tdStyle}>{renderCell(priceData?.[4])}</td>
-                    <td style={tdStyle}>
+                  <td style={tdStyle}><strong>{stock.ticker}</strong></td>
+                  <td style={tdStyle}>{curr ?? '-'}</td>
+                  <td style={tdStyle}>{renderCell(priceData?.[1])}</td>
+                  <td style={tdStyle}>{renderCell(priceData?.[2])}</td>
+                  <td style={tdStyle}>{renderCell(priceData?.[3])}</td>
+                  <td style={tdStyle}>{renderCell(priceData?.[4])}</td>
+                  <td style={tdStyle}>
                     <button
-                        onClick={() => handleDeleteStock(stock.id)}
-                        style={{ color: 'red' }}
+                      onClick={() => handleDeleteStock(stock.id)}
+                      style={{ color: 'red' }}
                     >
-                        Delete
+                      Delete
                     </button>
-                    </td>
+                  </td>
                 </tr>
-                );
+              );
             })}
-            </tbody>
+          </tbody>
         </table>
-        </div>
       </div>
     </div>
   );
