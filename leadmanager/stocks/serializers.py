@@ -28,13 +28,6 @@ class StockSerializerBasic(serializers.ModelSerializer):
             return StockPriceSerializer(latest).data
         return None
 
-# For nested representation in Portfolio and Watchlist, we require only the ticker.
-# When creating/updating a Watchlist, the client can send a list of dictionaries with only "ticker"
-class NestedStockSerializer(serializers.ModelSerializer):
-    ticker = serializers.CharField(required=True)
-    class Meta:
-        model = Stock
-        fields = ('ticker',)
 
 # Serializer for the through model PortfolioStock.
 class PortfolioStockSerializer(serializers.ModelSerializer):
@@ -73,24 +66,31 @@ class PortfolioSerializer(serializers.ModelSerializer):
                 continue
         return portfolio
 
-# Watchlist CRUD serializer.
+class NestedStockSerializer(serializers.ModelSerializer):
+    ticker = serializers.CharField(required=True)
+    id = serializers.IntegerField(read_only=True)  # fixed source reference
+
+    class Meta:
+        model = Stock
+        fields = ('id', 'ticker')
+
+
 class WatchlistSerializer(serializers.ModelSerializer):
     stocks = NestedStockSerializer(many=True, required=False)
     owner = serializers.ReadOnlyField(source='owner.id')
-    
+
     class Meta:
         model = Watchlist
         fields = '__all__'
-    
+
     def create(self, validated_data):
         stocks_data = validated_data.pop('stocks', [])
         watchlist = Watchlist.objects.create(**validated_data)
-        for stock_item in stocks_data:
-            try:
-                stock = Stock.objects.get(ticker=stock_item.get('ticker'))
-                watchlist.stocks.add(stock)
-            except Stock.DoesNotExist:
-                continue
+
+        tickers = [s.get('ticker') for s in stocks_data]
+        stocks = Stock.objects.filter(ticker__in=tickers)
+        watchlist.stocks.set(stocks)
+
         return watchlist
 
     def update(self, instance, validated_data):
@@ -98,13 +98,12 @@ class WatchlistSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+
         if stocks_data is not None:
-            instance.stocks.clear()
-            for stock_item in stocks_data:
-                try:
-                    stock = Stock.objects.get(ticker=stock_item.get('ticker'))
-                    instance.stocks.add(stock)
-                except Stock.DoesNotExist:
-                    continue
+            tickers = [s.get('ticker') for s in stocks_data]
+            stocks = Stock.objects.filter(ticker__in=tickers)
+            instance.stocks.set(stocks)
+
         return instance
+
 
