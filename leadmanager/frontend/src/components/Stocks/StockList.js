@@ -31,8 +31,8 @@ function StockList() {
   };
 
   const listContainerStyle = {
-    display: 'flex',
-    flexWrap: 'wrap',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', // Create a grid with 4 cards per row
     gap: '20px',
     justifyContent: 'center',
   };
@@ -42,7 +42,7 @@ function StockList() {
     border: 'none',
     borderRadius: '15px',
     padding: '20px',
-    width: '250px',
+    width: '100%',
     boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)',
     transition: 'transform 0.3s ease, box-shadow 0.3s ease',
     textAlign: 'center',
@@ -61,50 +61,47 @@ function StockList() {
     marginBottom: '15px',
   };
 
-  const linkStyle = {
-    display: 'inline-block',
-    padding: '10px 20px',
-    backgroundColor: '#1a73e8',
-    color: '#fff',
-    textDecoration: 'none',
-    borderRadius: '8px',
-    fontSize: '1rem',
-    transition: 'background-color 0.3s ease',
-  };
+  const percentageStyle = (isIncrease) => ({
+    fontSize: '1.2rem',
+    fontWeight: 'bold',
+    color: isIncrease ? 'green' : 'red',
+  });
 
   return (
     <div style={containerStyle}>
       <h2 style={titleStyle}>Stock List</h2>
       <div style={listContainerStyle}>
-        {stocks.map(stock => (
-          <div
-            key={stock.id}
-            style={cardStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-5px)';
-              e.currentTarget.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-            }}
-          >
-            <h3 style={tickerStyle}>{stock.ticker}</h3>
-            <p style={companyStyle}>{stock.company_name}</p>
+        {stocks.map(stock => {
+          const prevClose = parseFloat(stock.latest_price.prev_close_price);
+          const close = parseFloat(stock.latest_price.close_price);
+          console.log("stock:", stock, "prevClose:", prevClose, "close:", close);
+          const percentageChange = ((close - prevClose) / prevClose) * 100;
+          const isIncrease = percentageChange > 0;
+
+          return (
             <Link
-              to={`/stocks/${stock.id}?with_prices=true`}
-              style={linkStyle}
+              to={`/stocks/${stock.id}`}
+              key={stock.id}
+              style={{ ...cardStyle, textDecoration: 'none', color: 'inherit' }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#1558b0';
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.15)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#1a73e8';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
               }}
             >
-              Show More
+              <h3 style={tickerStyle}>{stock.ticker}</h3>
+              <p style={companyStyle}>{stock.company_name}</p>
+              <div style={percentageStyle(isIncrease)}>
+                {isIncrease
+                  ? `+${percentageChange.toFixed(2)}%`
+                  : `${percentageChange.toFixed(2)}%`}
+              </div>
             </Link>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
