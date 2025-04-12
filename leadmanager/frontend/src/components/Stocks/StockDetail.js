@@ -9,7 +9,7 @@ function StockDetail() {
   const { id } = useParams();
   const [stock, setStock] = useState(null);
   const [chartData, setChartData] = useState(null);
-  const [timeRange, setTimeRange] = useState('1Y'); // Default time range is 1 year
+  const [timeRange, setTimeRange] = useState('1D'); // Default time range is 1 day
   const [isAddedToWatchlist, setIsAddedToWatchlist] = useState(false); // Track watchlist status
 
   useEffect(() => {
@@ -17,10 +17,10 @@ function StockDetail() {
       method: 'GET',
       headers: {
         'Authorization': `Token ${localStorage.getItem('token')}`,
-      }
+      },
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         setStock(data);
 
         // Extract dates and close prices from the prices array
@@ -28,11 +28,34 @@ function StockDetail() {
           updateChartData(data.prices, timeRange); // Update chart data based on the selected time range
         }
       })
-      .catch(error => console.error('Error fetching stock:', error));
+      .catch((error) => console.error('Error fetching stock:', error));
   }, [id, timeRange]); // Re-run effect when timeRange changes
 
+  const handleAddToWatchlist = () => {
+    const url = `http://127.0.0.1:8000/api/watchlists/3/${stock.id}/`;
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${localStorage.getItem('token')}`,
+      },
+    })
+      .then(response => {
+        if (response.ok) {
+          setIsAddedToWatchlist(true);
+          alert(`${stock.ticker} has been added to your watchlist!`);
+        } else {
+          alert('Failed to add to watchlist. Please try again.');
+        }
+      })
+      .catch(error => {
+        console.error('Error adding to watchlist:', error);
+        alert('An error occurred. Please try again.');
+      });
+  };
+
   const updateChartData = (prices, range) => {
-    const now = new Date();
     let filteredPrices;
 
     // Filter prices based on the selected time range
@@ -55,8 +78,8 @@ function StockDetail() {
         break;
     }
 
-    const labels = filteredPrices.map(item => item.date).reverse(); // Dates for the x-axis
-    const pricesData = filteredPrices.map(item => parseFloat(item.close_price)).reverse(); // Close prices for the y-axis
+    const labels = filteredPrices.map((item) => item.date).reverse(); // Dates for the x-axis
+    const pricesData = filteredPrices.map((item) => parseFloat(item.close_price)).reverse(); // Close prices for the y-axis
 
     // Determine the line color based on the first and last close prices
     const lineColor = pricesData[0] > pricesData[pricesData.length - 1] ? 'red' : 'green';
@@ -77,96 +100,73 @@ function StockDetail() {
     });
   };
 
-  const handleAddToWatchlist = () => {
-    // Replace with your API endpoint
-    const url = `http://127.0.0.1:8000/api/watchlists/3/${stock.id}/`;
-    fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Token ${localStorage.getItem('token')}`, // Include token if required
-      },
-    })
-      .then(response => {
-        if (response.ok) {
-          setIsAddedToWatchlist(true);
-          alert(`${stock.ticker} has been added to your watchlist!`);
-        } else {
-          alert('Failed to add to watchlist. Please try again.');
-        }
-      })
-      .catch(error => {
-        console.error('Error adding to watchlist:', error);
-        alert('An error occurred. Please try again.');
-      });
-  };
-
   if (!stock) return <p style={{ padding: '20px' }}>Loading...</p>;
 
-return (
-  <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-    {chartData && (
-      <div style={{ marginTop: '40px', width: '100%', maxWidth: '800px' }}>
-        <h3 style={{ color: '#1a73e8', textAlign: 'center' }}>{stock.company_name}</h3>
-
-        {/* Time Range Buttons */}
-        <div style={{ margin: '20px 0', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          {['1D', '1W', '1M', '6M', '1Y'].map(range => (
+  return (
+    <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {chartData && (
+        <div style={{ marginTop: '40px', width: '100%', maxWidth: '800px' }}>
+          <h3 style={{ color: '#1a73e8', textAlign: 'center' }}>{stock.company_name}</h3>
+  
+          {/* Time Range Buttons */}
+          <div style={{ margin: '20px 0', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            {['1Y', '6M', '1M', '1W', '1D'].map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: timeRange === range ? '#1a73e8' : '#f4f4f4',
+                  color: timeRange === range ? '#fff' : '#333',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+  
+          <Line
+            data={chartData}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'top',
+                },
+                title: {
+                  display: true,
+                  text: 'Stock Price Over Time',
+                },
+              },
+            }}
+          />
+  
+          {/* Add to Watchlist Button */}
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
             <button
-              key={range}
-              onClick={() => setTimeRange(range)}
+              onClick={handleAddToWatchlist}
+              disabled={isAddedToWatchlist}
               style={{
                 padding: '10px 20px',
-                backgroundColor: timeRange === range ? '#1a73e8' : '#f4f4f4',
-                color: timeRange === range ? '#fff' : '#333',
+                backgroundColor: isAddedToWatchlist ? '#ccc' : '#1a73e8',
+                color: '#fff',
                 border: 'none',
                 borderRadius: '5px',
-                cursor: 'pointer',
+                cursor: isAddedToWatchlist ? 'not-allowed' : 'pointer',
                 fontWeight: 'bold',
               }}
             >
-              {range}
+              {isAddedToWatchlist ? 'Added to Watchlist' : 'Add to Watchlist'}
             </button>
-          ))}
+          </div>
         </div>
-
-        <Line
-          data={chartData}
-          options={{
-            responsive: true,
-            plugins: {
-              legend: {
-                position: 'top',
-              },
-              title: {
-                display: true,
-                text: 'Stock Price Over Time',
-              },
-            },
-          }}
-        />
-
-        {/* Add to Watchlist Button */}
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <button
-            onClick={handleAddToWatchlist}
-            disabled={isAddedToWatchlist}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: isAddedToWatchlist ? '#ccc' : '#1a73e8',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: isAddedToWatchlist ? 'not-allowed' : 'pointer',
-              fontWeight: 'bold',
-            }}
-          >
-            {isAddedToWatchlist ? 'Added to Watchlist' : 'Add to Watchlist'}
-          </button>
-        </div>
-      </div>
-    )}
-  </div>
-);
+      )}
+    </div>
+  );
 }
+
 export default StockDetail;
