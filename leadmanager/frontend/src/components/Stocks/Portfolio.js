@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';  // Import Link from react-router-dom
+import { Link } from 'react-router-dom';
 import 'regenerator-runtime/runtime';
 
 function Portfolio() {
@@ -93,7 +93,7 @@ function Portfolio() {
     };
 
     fetch(`http://127.0.0.1:8000/api/portfolios/${editPortfolioId}/`, {
-      method: 'PATCH', // or PUT if you prefer
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Token ${localStorage.getItem('token')}`,
@@ -174,14 +174,12 @@ function Portfolio() {
         )
         .catch(console.error);
     } else {
-      // If the search query is too short, clear the search results
       setSearchResults((prev) => ({ ...prev, [portfolioId]: [] }));
     }
   };
 
   // Show the form for adding stock (buy_price & shares)
   const handleAddStockClick = (portfolioId, stockId) => {
-    // Check if the stock already exists in the portfolio.
     const currentPortfolio = portfolios.find((p) => p.id === portfolioId);
     if (
       currentPortfolio &&
@@ -236,7 +234,6 @@ function Portfolio() {
   // ------------------------------------------------------------
   // 6) Delete Stock
   // ------------------------------------------------------------
-  // If your backend expects the 1-based index for the stock in that portfolio, use (index+1)
   const handleDeleteStock = (portfolioId, index) => {
     fetch(`http://127.0.0.1:8000/api/portfolios/${portfolioId}/${index + 1}/`, {
       method: 'DELETE',
@@ -255,11 +252,9 @@ function Portfolio() {
   };
 
   // ------------------------------------------------------------
-  // Calculate Overall Portfolio Profit (weighted)
+  // Calculate Overall Portfolio Profit (for single portfolios)
   // ------------------------------------------------------------
   const calculatePortfolioProfit = (stocks) => {
-    // Total cost: Sum(buy_price * shares)
-    // Total current: Sum(current_close * shares) with fallback to buy_price if necessary
     const totalCost = stocks.reduce((acc, stock) => {
       const cost = parseFloat(stock.buy_price) * parseFloat(stock.shares);
       return acc + cost;
@@ -277,11 +272,38 @@ function Portfolio() {
   };
 
   // ------------------------------------------------------------
+  // Calculate Total Profit/Loss Over All Portfolios
+  // ------------------------------------------------------------
+  const calculateOverallProfit = () => {
+    let totalCostAll = 0;
+    let totalCurrentAll = 0;
+    portfolios.forEach((portfolio) => {
+      portfolio.stocks?.forEach((stock) => {
+        totalCostAll += parseFloat(stock.buy_price) * parseFloat(stock.shares);
+        const currentPrice = stock.current_close
+          ? parseFloat(stock.current_close)
+          : parseFloat(stock.buy_price);
+        totalCurrentAll += currentPrice * parseFloat(stock.shares);
+      });
+    });
+    return totalCostAll > 0 ? ((totalCurrentAll - totalCostAll) / totalCostAll) * 100 : 0;
+  };
+
+  // ------------------------------------------------------------
   // Render
   // ------------------------------------------------------------
+  const overallProfit = calculateOverallProfit();
+  // Determine overall status text and formatting
+  const overallStatus = overallProfit >= 0 ? 'Profit' : 'Loss';
+  const displayProfit = Math.abs(overallProfit).toFixed(2);
+  const overallProfitColor = overallProfit >= 0 ? 'green' : 'red';
+
   return (
     <div style={{ padding: '20px' }}>
       <h2 style={{ textAlign: 'center' }}>My Portfolios</h2>
+      <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '1.2rem', color: overallProfitColor }}>
+        Overall {overallStatus}: {displayProfit}%
+      </div>
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       {/* CREATE NEW PORTFOLIO FORM */}
@@ -315,7 +337,6 @@ function Portfolio() {
       {/* DISPLAY ALL PORTFOLIOS */}
       {portfolios.map((portfolio) => {
         const isEditing = editPortfolioId === portfolio.id;
-        // Calculate overall profit percent for the portfolio
         const portfolioProfitPercent = calculatePortfolioProfit(portfolio.stocks || []);
         const portfolioProfitColor = portfolioProfitPercent >= 0 ? 'green' : 'red';
         const portfolioStatus = portfolioProfitPercent >= 0 ? 'Up' : 'Down';
@@ -389,7 +410,6 @@ function Portfolio() {
               <div>
                 <h5>Search Results</h5>
                 {searchResults[portfolio.id].map((stock) => {
-                  // Check if the stock is already added in this portfolio.
                   const alreadyAdded = portfolio.stocks?.some((s) => s.id === stock.id);
                   return (
                     <div key={stock.id} style={{ marginBottom: '5px' }}>
@@ -434,13 +454,11 @@ function Portfolio() {
             <h4>Stocks</h4>
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
               {portfolio.stocks?.map((stock, index) => {
-                // Calculate profit percentage for an individual stock
                 const buyPrice = parseFloat(stock.buy_price);
                 const currentPrice = stock.current_close
                   ? parseFloat(stock.current_close)
                   : buyPrice;
-                const profitPercent =
-                  buyPrice > 0 ? ((currentPrice - buyPrice) / buyPrice) * 100 : 0;
+                const profitPercent = buyPrice > 0 ? ((currentPrice - buyPrice) / buyPrice) * 100 : 0;
                 const profitColor = profitPercent >= 0 ? 'green' : 'red';
 
                 return (
@@ -454,7 +472,6 @@ function Portfolio() {
                       background: '#f9f9f9',
                     }}
                   >
-                    {/* Make the stock ticker clickable to navigate to StockDetail */}
                     <strong>
                       <Link
                         to={`/stocks/${stock.id}`}

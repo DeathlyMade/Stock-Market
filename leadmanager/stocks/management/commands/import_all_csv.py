@@ -1,14 +1,13 @@
 import os
 import csv
 import glob
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand, CommandError
 from stocks.models import Stock, StockPrice
-import traceback
 from decimal import Decimal, InvalidOperation
 
 class Command(BaseCommand):
-    help = 'Import stock and historical price data from all CSV files in a given dataset folder'
+    help = 'Import stock and historical price data from all CSV files in a given dataset folder, limiting to the last two calendar years in each CSV file'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -23,7 +22,7 @@ class Command(BaseCommand):
         if not os.path.isdir(dataset_path):
             raise CommandError(f"Directory '{dataset_path}' does not exist or is not a directory.")
         
-        #reading metadata from stock_metadata.csv
+        # Reading metadata from stock_metadata.csv
         metadata_file = os.path.join(dataset_path, 'stock_metadata.csv')
         try:
             with open(metadata_file, 'r', encoding='utf-8') as f:
@@ -33,7 +32,6 @@ class Command(BaseCommand):
                     company_name = row.get('Company Name', '').strip()
                     series = row.get('Series', '').strip() or "EQ"
                     industry = row.get('Industry', '').strip()
-
 
                     # Get or create the Stock record.
                     stock_obj, created = Stock.objects.get_or_create(
@@ -55,23 +53,43 @@ class Command(BaseCommand):
 
         total_records = 0
 
-
         # Process each CSV file.
         for csv_file in csv_files:
             self.stdout.write(self.style.SUCCESS(f"Processing file: {csv_file}"))
 
             # Use the file name (without extension) as the default ticker if Symbol is not provided.
             ticker_from_filename = os.path.splitext(os.path.basename(csv_file))[0].upper()
-            if(ticker_from_filename == 'stock_metadata'):
+            if ticker_from_filename == 'STOCK_METADATA':
                 continue
 
             try:
                 with open(csv_file, 'r', encoding='utf-8') as f:
                     reader = csv.DictReader(f)
-                    for row in reader:
+                    rows = list(reader)
+
+                    # Determine the maximum date available in this CSV file.
+                    max_date = None
+                    for row in rows:
+                        date_str = row.get('Date', '').strip()
+                        try:
+                            d = datetime.strptime(date_str, '%Y-%m-%d').date()
+                            if (max_date is None) or (d > max_date):
+                                max_date = d
+                        except ValueError:
+                            # skip invalid dates while finding max_date
+                            continue
+
+                    # Calculate threshold: If max_date exists then keep data with date 
+                    # on or after January 1 of (max_date.year - 1)
+                    threshold_date = None
+                    if max_date:
+                        threshold_date = datetime(max_date.year - 1, 1, 1).date()
+
+                    for row in rows:
                         # Map CSV columns to Stock model fields.
                         ticker = row.get('Symbol', '').strip() or ticker_from_filename
 
+                        # Get the corresponding Stock object (assumes it already exists)
                         stock_obj = Stock.objects.get(ticker=ticker)
 
                         # Parse the Date column (assumes format 'YYYY-MM-DD').
@@ -82,6 +100,10 @@ class Command(BaseCommand):
                             self.stdout.write(
                                 self.style.WARNING(f"Skipping row with invalid date: {date_str} in file {csv_file}")
                             )
+                            continue
+
+                        # Skip rows older than the calculated threshold for this CSV (if threshold was determined).
+                        if threshold_date and date < threshold_date:
                             continue
 
                         def to_decimal(val):
@@ -107,7 +129,6 @@ class Command(BaseCommand):
                                 'close_price': to_decimal(row.get('Close')),
                                 'VWAP': to_decimal(row.get('VWAP')),
                                 'volume': to_decimal(row.get('Volume')),
-                                # 'trades' column from CSV is not used since there is no corresponding model field.
                             }
                         except Exception as e:
                             self.stdout.write(
@@ -124,13 +145,9 @@ class Command(BaseCommand):
                         total_records += 1
 
             except Exception as e:
-                
                 self.stdout.write(self.style.WARNING(f"Error processing file {csv_file}: {e}"))
-                print(f"❌ InvalidOperation in row: {row}")
-        
-
-            
-
+                # Optionally print detailed error info.
+                print(f"❌ Error in row: {row}")
 
         self.stdout.write(self.style.SUCCESS(
             f"Successfully processed {len(csv_files)} files and imported {total_records} records."

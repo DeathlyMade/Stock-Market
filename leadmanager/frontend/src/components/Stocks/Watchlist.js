@@ -1,284 +1,226 @@
 import React, { useEffect, useState } from 'react';
-
-// Function to fetch price changes for a stock
-const getPriceChanges = (stockId) => {
-
-
-    //check if price changes are present in local storage
-    const priceChanges = localStorage.getItem('priceChanges');
-    if (priceChanges) {
-        const parsedChanges = JSON.parse(priceChanges);
-        const changes = parsedChanges[stockId];
-        if (changes) {
-            console.log("Price changes from local storage:", changes);
-            return Promise.resolve(changes);
-        }
-    }
-
-
-  return fetch(`http://127.0.0.1:8000/api/stocks/${stockId}?with_prices=true`, {
-    headers: {
-      Authorization: `Token ${localStorage.getItem('token')}`,
-    },
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      const prices = data.prices;
-
-      // Get the most recent price (current price)
-      const currentPrice = prices[0]?.close_price;
-      const curr_date = prices[0]?.date;
-      console.log("Current Date:", curr_date);
-
-      // Find prices for the past 1 day, 1 week, 1 month, and 1 year
-      const oneDayAgo = prices[1]?.close_price;
-      const oneWeekAgo = prices[7]?.close_price;
-      const oneMonthAgo = prices[30]?.close_price;
-      const oneYearAgo = prices[365]?.close_price;
-   
-      //log all values to the console
-      console.log("Current Price:", currentPrice);
-      console.log("1 Day Ago:", oneDayAgo);
-        console.log("1 Week Ago:", oneWeekAgo);
-        console.log("1 Month Ago:", oneMonthAgo);
-        console.log("1 Year Ago:", oneYearAgo);
-       
-        // Store the price changes in local storage if they are not already present
-        let existingPriceChanges = localStorage.getItem('priceChanges');
-        if (existingPriceChanges) {
-            existingPriceChanges = JSON.parse(existingPriceChanges);
-        } else {
-            existingPriceChanges = {};
-        }
-        //Add the new price changes to the existing ones
-        existingPriceChanges[stockId] = [
-            currentPrice,
-            oneDayAgo,
-            oneWeekAgo,
-            oneMonthAgo,
-            oneYearAgo,
-        ];
-        localStorage.setItem('priceChanges', JSON.stringify(existingPriceChanges));
-      return [
-        currentPrice,
-        oneDayAgo,
-        oneWeekAgo,
-        oneMonthAgo,
-        oneYearAgo,
-      ];
-    })
-    .catch(console.error);
-};
-
-const handleDownloadCSV = (stocks) => {
-    const headers = ['Ticker', 'Current Price', '1D Ago', '1W Ago', '1M Ago', '1Y Ago'];
-    const rows = stocks.map((stock) => {
-      const priceData = priceChanges[stock.id] || [];
-      return [
-        stock.ticker,
-        priceData[0],
-        priceData[1],
-        priceData[2],
-        priceData[3],
-        priceData[4],
-      ];
-    });
- 
-    const csvContent =
-      [headers, ...rows]
-        .map((row) => row.map((item) => `"${item}"`).join(','))
-        .join('\n');
- 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'stock_prices.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
- 
-
+import { Link } from 'react-router-dom';
 
 const thStyle = {
     padding: '10px',
     textAlign: 'left',
     background: '#eaeaea',
-    borderBottom: '2px solid #ccc'
-  };
- 
-  const tdStyle = {
-    padding: '10px'
-  };
+    borderBottom: '2px solid #ccc',
+};
 
+const tdStyle = {
+    padding: '10px',
+};
 
 function Watchlist() {
-  const [stocks, setStocks] = useState([]);
-  const [error, setError] = useState(null);
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [priceChanges, setPriceChanges] = useState({});
+    const [stocks, setStocks] = useState([]);
+    const [error, setError] = useState(null);
+    const [searchResults, setSearchResults] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/watchlists/3/', {
-      headers: {
-        Authorization: `Token ${localStorage.getItem('token')}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setStocks(data.stocks);
+    // Helper function to fetch watchlist data
+    const fetchWatchlist = () => {
+        fetch('http://127.0.0.1:8000/api/watchlist/', {
+            headers: {
+                Authorization: `Token ${localStorage.getItem('token')}`,
+            },
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                setStocks(data.stocks || []);
+            })
+            .catch(() => setError('Error fetching watchlist'));
+    };
 
-        // Fetch price changes for each stock in the watchlist
-        data.stocks.forEach((stock) => {
-          getPriceChanges(stock.id).then((changes) => {
-            setPriceChanges((prevPriceChanges) => ({
-              ...prevPriceChanges,
-              [stock.id]: changes,
-            }));
-          });
+    // Fetch watchlist on component mount.
+    useEffect(() => {
+        fetchWatchlist();
+    }, []);
+
+    const handleSearchChange = (query) => {
+        setSearchQuery(query);
+        if (query.length > 1) {
+            fetch(`http://127.0.0.1:8000/api/stocks/?search=${query}`, {
+                headers: {
+                    Authorization: `Token ${localStorage.getItem('token')}`,
+                },
+            })
+                .then((res) => res.json())
+                .then((data) => setSearchResults(data))
+                .catch(console.error);
+        } else {
+            setSearchResults([]);
+        }
+    };
+
+    // Use POST method to add a stock and update state afterward.
+    const handleAddStock = (stockId) => {
+        fetch(`http://127.0.0.1:8000/api/watchlist/${stockId}`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Token ${localStorage.getItem('token')}`,
+            },
+        })
+            .then(() => fetchWatchlist())
+            .catch(console.error);
+    };
+
+    // Define handleDeleteStock to remove a stock from the watchlist.
+    const handleDeleteStock = (stockId) => {
+        fetch(`http://127.0.0.1:8000/api/watchlist/${stockId}`, {
+            method: 'DELETE',
+            headers: {
+                Authorization: `Token ${localStorage.getItem('token')}`,
+            },
+        })
+            .then(() => fetchWatchlist())
+            .catch(console.error);
+    };
+
+    const handleDownloadCSV = () => {
+        const headers = ['Ticker', 'Latest Price', 'Week Before Price', 'Month Before Price', 'Year Before Price'];
+        const rows = stocks.map((stock) => {
+            return [
+                stock.ticker,
+                stock.latest_price ? stock.latest_price.close_price : '-',
+                stock.week_before_price ? stock.week_before_price.close_price : '-',
+                stock.month_before_price ? stock.month_before_price.close_price : '-',
+                stock.year_before_price ? stock.year_before_price.close_price : '-',
+            ];
         });
-      })
-      .catch(() => setError('Error fetching watchlist'));
-  }, []);
+        const csvContent =
+            [headers, ...rows]
+                .map((row) => row.map((item) => `"${item}"`).join(','))
+                .join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'stock_prices.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
-  const handleSearchChange = (query) => {
-    setSearchQuery(query);
-    if (query.length > 1) {
-      fetch(`http://127.0.0.1:8000/api/stocks/?search=${query}`, {
-        headers: {
-          Authorization: `Token ${localStorage.getItem('token')}`,
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => setSearchResults(data))
-        .catch(console.error);
-    } else {
-      setSearchResults([]);
-    }
-  };
+    // Helper to render a cell with past price and calculated percentage change.
+    const renderChangeCell = (latestPrice, pastPrice) => {
+        if (!latestPrice || !pastPrice) return '-';
+        const current = parseFloat(latestPrice.close_price);
+        const past = parseFloat(pastPrice.close_price);
+        if (!past) return '-';
+        const diff = current - past;
+        const percent = ((diff / past) * 100).toFixed(2);
+        const color = diff > 0 ? 'green' : diff < 0 ? 'red' : 'gray';
+        return (
+            <>
+                {past} <span style={{ color, marginLeft: '5px' }}>({percent}%)</span>
+            </>
+        );
+    };
 
-  const handleAddStock = (stockId) => {
-    fetch(`http://127.0.0.1:8000/api/watchlists/3/${stockId}/`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Token ${localStorage.getItem('token')}`,
-      },
-    })
-      .then(() => window.location.reload())
-      .catch(console.error);
-  };
-
-  const handleDownloadCSV = () => {
-    const headers = ['Ticker', 'Current Price', '1D Ago', '1W Ago', '1M Ago', '1Y Ago'];
- 
-    // Load price changes from local storage
-    const priceChanges = localStorage.getItem('priceChanges');
-    const parsedChanges = JSON.parse(priceChanges);
- 
-    // Prepare CSV rows
-    const rows = stocks.map((stock) => {
-      const priceData = parsedChanges?.[stock.id] || [];
-      return [
-        stock.ticker,
-        priceData[0],
-        priceData[1],
-        priceData[2],
-        priceData[3],
-        priceData[4],
-      ];
-    });
- 
-    // Build CSV content
-    const csvContent =
-      [headers, ...rows]
-        .map((row) => row.map((item) => `"${item}"`).join(','))
-        .join('\n');
- 
-    // Create downloadable link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'stock_prices.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
- 
-  const handleDeleteStock = (stockId) => {
-    console.log("Deleting stock with ID:", stockId);
-    fetch(`http://127.0.0.1:8000/api/watchlists/3/${stockId}/`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Token ${localStorage.getItem('token')}`,
-      },
-    })
-      .then(() => window.location.reload())
-      .catch(console.error);
-  };
-  
-  return (
-    <div style={{ padding: '20px' }}>
-      <h2 style={{ textAlign: 'center' }}>Watchlist</h2>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#f9f9f9' }}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Ticker</th>
-              <th style={thStyle}>Current Price</th>
-              <th style={thStyle}>1 Day Ago</th>
-              <th style={thStyle}>1 Week Ago</th>
-              <th style={thStyle}>1 Month Ago</th>
-              <th style={thStyle}>1 Year Ago</th>
-              <th style={thStyle}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stocks?.map((stock, index) => {
-              const priceData = priceChanges[stock.id];
-              const curr = priceData?.[0];
-  
-              const renderCell = (pastPrice) => {
-                if (curr == null || pastPrice == null) return '-';
-                const diff = curr - pastPrice;
-                const percent = ((diff / pastPrice) * 100).toFixed(2);
-                const color = diff > 0 ? 'green' : diff < 0 ? 'red' : 'gray';
-                return (
-                  <>
-                    {pastPrice}
-                    <span style={{ color, marginLeft: '5px' }}>
-                      ({percent}%)
-                    </span>
-                  </>
-                );
-              };
-  
-              return (
-                <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={tdStyle}><strong>{stock.ticker}</strong></td>
-                  <td style={tdStyle}>{curr ?? '-'}</td>
-                  <td style={tdStyle}>{renderCell(priceData?.[1])}</td>
-                  <td style={tdStyle}>{renderCell(priceData?.[2])}</td>
-                  <td style={tdStyle}>{renderCell(priceData?.[3])}</td>
-                  <td style={tdStyle}>{renderCell(priceData?.[4])}</td>
-                  <td style={tdStyle}>
-                    <button
-                      onClick={() => handleDeleteStock(stock.id)}
-                      style={{ color: 'red' }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+    return (
+        <div style={{ padding: '20px' }}>
+            <h2 style={{ textAlign: 'center' }}>Watchlist</h2>
+            {error && <p style={{ color: 'red' }}>{error}</p>}
+            <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', background: '#f9f9f9' }}>
+                    <thead>
+                        <tr>
+                            <th style={thStyle}>Ticker</th>
+                            <th style={thStyle}>Latest Price</th>
+                            <th style={thStyle}>Week Before Price</th>
+                            <th style={thStyle}>Month Before Price</th>
+                            <th style={thStyle}>Year Before Price</th>
+                            <th style={thStyle}>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {stocks?.map((stock, index) => (
+                            <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                                <td style={tdStyle}>
+                                    <Link
+                                        to={`/stocks/${stock.id}`}
+                                        style={{ textDecoration: 'none', color: '#1a73e8' }}
+                                    >
+                                        <strong>{stock.ticker}</strong>
+                                    </Link>
+                                </td>
+                                <td style={tdStyle}>
+                                    {stock.latest_price ? stock.latest_price.close_price : '-'}
+                                </td>
+                                <td style={tdStyle}>
+                                    {stock.week_before_price && stock.latest_price
+                                        ? renderChangeCell(stock.latest_price, stock.week_before_price)
+                                        : '-'}
+                                </td>
+                                <td style={tdStyle}>
+                                    {stock.month_before_price && stock.latest_price
+                                        ? renderChangeCell(stock.latest_price, stock.month_before_price)
+                                        : '-'}
+                                </td>
+                                <td style={tdStyle}>
+                                    {stock.year_before_price && stock.latest_price
+                                        ? renderChangeCell(stock.latest_price, stock.year_before_price)
+                                        : '-'}
+                                </td>
+                                <td style={tdStyle}>
+                                    <button onClick={() => handleDeleteStock(stock.id)} style={{ color: 'red' }}>
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            {/* Search and Add Stocks */}
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                <input
+                    type="text"
+                    placeholder="Search stocks..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    style={{ padding: '8px', width: '300px', marginRight: '10px' }}
+                />
+                {searchResults.length > 0 && (
+                    <div style={{ background: '#fff', padding: '10px', marginTop: '10px' }}>
+                        {searchResults.map((stock) => {
+                            // Check if the stock is already in the watchlist
+                            const alreadyAdded = stocks.some((wStock) => wStock.id === stock.id);
+                            return (
+                                <div key={stock.id} style={{ marginBottom: '5px' }}>
+                                    {stock.ticker}{' '}
+                                    {alreadyAdded ? (
+                                        <span style={{ color: 'gray', fontStyle: 'italic' }}>Already Added</span>
+                                    ) : (
+                                        <button onClick={() => handleAddStock(stock.id)} style={{ color: '#1a73e8' }}>
+                                            Add to Watchlist
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                <button
+                    onClick={handleDownloadCSV}
+                    style={{
+                        padding: '10px 20px',
+                        background: '#1a73e8',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                    }}
+                >
+                    Download CSV
+                </button>
+            </div>
+        </div>
+    );
 }
 
 export default Watchlist;

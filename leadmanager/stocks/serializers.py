@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from stocks.models import Stock, StockPrice, Portfolio, Watchlist, PortfolioStock
+import datetime
+from datetime import timedelta
 
 class StockPriceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,15 +19,51 @@ class StockSerializer(serializers.ModelSerializer):
 
 class StockSerializerBasic(serializers.ModelSerializer):
     latest_price = serializers.SerializerMethodField()
+    week_before_price = serializers.SerializerMethodField()
+    month_before_price = serializers.SerializerMethodField()
+    year_before_price = serializers.SerializerMethodField()
 
     class Meta:
         model = Stock
-        fields = ('id', 'ticker', 'company_name', 'series', 'industry', 'latest_price')
+        fields = ('id', 'ticker', 'company_name', 'series', 'industry', 
+                  'latest_price', 'week_before_price', 'month_before_price', 'year_before_price')
 
     def get_latest_price(self, obj):
         latest = obj.prices.first()  # Assumes prices are ordered by '-date'
         if latest:
             return StockPriceSerializer(latest).data
+        return None
+    
+    def get_week_before_price(self, obj):
+        latest = obj.prices.first()
+        if not latest:
+            return None
+        target_date = latest.date - timedelta(days=7)
+        week_ago = obj.prices.filter(date__lte=target_date).order_by("-date").first()
+        if week_ago:
+            return StockPriceSerializer(week_ago).data
+        return None
+
+    def get_month_before_price(self, obj):
+        latest = obj.prices.first()
+        if not latest:
+            return None
+        # Subtract 30 days from latest date
+        target_date = latest.date - timedelta(days=30)
+        # Get the most recent price that is older than or equal to the target_date.
+        month_ago = obj.prices.filter(date__lte=target_date).order_by("-date").first()
+        if month_ago:
+            return StockPriceSerializer(month_ago).data
+        return None
+
+    def get_year_before_price(self, obj):
+        latest = obj.prices.first()
+        if not latest:
+            return None
+        target_date = latest.date - timedelta(days=365)
+        year_ago = obj.prices.filter(date__lte=target_date).order_by("-date").first()
+        if year_ago:
+            return StockPriceSerializer(year_ago).data
         return None
 
 
@@ -85,34 +123,8 @@ class NestedStockSerializer(serializers.ModelSerializer):
 
 
 class WatchlistSerializer(serializers.ModelSerializer):
-    stocks = NestedStockSerializer(many=True, required=False)
-    owner = serializers.ReadOnlyField(source='owner.id')
-
+    stocks = StockSerializerBasic(many=True, read_only=True)
+    
     class Meta:
         model = Watchlist
-        fields = '__all__'
-
-    def create(self, validated_data):
-        stocks_data = validated_data.pop('stocks', [])
-        watchlist = Watchlist.objects.create(**validated_data)
-
-        tickers = [s.get('ticker') for s in stocks_data]
-        stocks = Stock.objects.filter(ticker__in=tickers)
-        watchlist.stocks.set(stocks)
-
-        return watchlist
-
-    def update(self, instance, validated_data):
-        stocks_data = validated_data.pop('stocks', None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-
-        if stocks_data is not None:
-            tickers = [s.get('ticker') for s in stocks_data]
-            stocks = Stock.objects.filter(ticker__in=tickers)
-            instance.stocks.set(stocks)
-
-        return instance
-
-
+        fields = ('id', 'stocks')

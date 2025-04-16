@@ -13,6 +13,8 @@ from .serializers import (
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
 
 # Read-only endpoint for Stock objects.
 class StockViewSet(viewsets.ReadOnlyModelViewSet):
@@ -103,55 +105,38 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 # CRUD endpoint for Watchlist objects.
-class WatchlistViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = WatchlistSerializer
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_watchlist(request):
+    """
+    GET /api/watchlist/
+    Returns the authenticated user's watchlist (stocks list).
+    """
+    try:
+        watchlist = Watchlist.objects.get(owner=request.user)
+    except Watchlist.DoesNotExist:
+        # If the user does not have a watchlist, return an empty list.
+        return Response({"stocks": []}, status=status.HTTP_200_OK)
+    serializer = WatchlistSerializer(watchlist)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def get_queryset(self):
-        return Watchlist.objects.filter(owner=self.request.user)
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def change_watchlist(request, stock_id):
+    """
+    POST /api/watchlist/<stock_id> → Adds the stock.
+    DELETE /api/watchlist/<stock_id> → Removes the stock.
+    """
+    # Get or create a watchlist for the user.
+    watchlist, created = Watchlist.objects.get_or_create(owner=request.user)
+    try:
+        stock = Stock.objects.get(id=stock_id)
+    except Stock.DoesNotExist:
+        return Response({"error": "Stock not found"}, status=status.HTTP_404_NOT_FOUND)
     
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
-    # Custom action on the collection to DELETE all watchlists for the user.
-    @action(detail=False, methods=['delete'], url_path='')
-    def delete_all(self, request):
-        qs = self.get_queryset()
-        count = qs.count()
-        qs.delete()
-        return Response({'detail': f'{count} watchlist(s) deleted.'}, status=status.HTTP_204_NO_CONTENT)
-
-    # Custom action to GET, POST, or DELETE a specific stock in a watchlist.
-    # GET /api/watchlists/<watchlist_pk>/<stock_index>/
-    #   -> Returns the stock at the given 1-indexed position in the watchlist.
-    # DELETE /api/watchlists/<watchlist_pk>/<stock_index>/
-    #   -> Removes the stock at that 1-indexed position from the watchlist.
-    # POST /api/watchlists/<watchlist_pk>/<stock_id>/
-    #   -> Adds the stock (identified by its primary key) from the database to the watchlist.
-    @action(detail=True, methods=['get', 'delete', 'post'], url_path=r'(?P<stock_index>\d+)')
-    def stock(self, request, pk=None, stock_index=None):
-        watchlist = self.get_object()
-        if request.method.lower() == 'post':
-            # Interpret the URL parameter as the stock's primary key.
-            try:
-                stock_pk = int(stock_index)
-                stock = Stock.objects.get(pk=stock_pk)
-            except (ValueError, Stock.DoesNotExist):
-                return Response({'detail': 'Stock not found'}, status=status.HTTP_404_NOT_FOUND)
-            watchlist.stocks.add(stock)
-            return Response({'detail': 'Stock added to watchlist.'}, status=status.HTTP_200_OK)
-        
-        # For GET and DELETE, treat the parameter as a 1-indexed position in the watchlist's stocks.
-        try:
-            index = int(stock_index) - 1  # Convert 1-indexed value to 0-indexed.
-            stock = watchlist.stocks.all()[index]
-        except (ValueError, IndexError):
-            return Response({'detail': 'Stock not found in watchlist'}, status=status.HTTP_404_NOT_FOUND)
-        
-        if request.method.lower() == 'delete':
-            watchlist.stocks.remove(stock)
-            return Response({'detail': 'Stock removed from watchlist.'}, status=status.HTTP_204_NO_CONTENT)
-        
-        # GET: return the stock details.
-        serializer = NestedStockSerializer(stock)
-        return Response(serializer.data)
+    if request.method == 'POST':
+        watchlist.stocks.add(stock)
+        return Response({"message": "Stock added to watchlist"}, status=status.HTTP_200_OK)
+    else:  # DELETE
+        watchlist.stocks.remove(stock)
+        return Response({"message": "Stock removed from watchlist"}, status=status.HTTP_200_OK)

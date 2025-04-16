@@ -44,13 +44,13 @@ render() {
             <MainLayout>
               <div className="container">
                 <Switch>
-                  <PrivateRoute exact path="/" component={Dashboard} />
-                  <Route exact path="/stocks" component={StockList} />
-                  <Route exact path="/stocks/:id" component={StockDetail} />
+                  <PrivateRoute exact path="/stocks" component={StockList} />
+                  <PrivateRoute exact path="/stocks/:id" component={StockDetail} />
                   <Route exact path="/register" component={Register} />
                   <Route exact path="/login" component={Login} />
-                  <Route exact path="/portfolios" component={Portfolio}/>
-                  <Route exact path="/watchlist" component={Watchlist}/>
+                  <PrivateRoute exact path="/portfolios" component={Portfolio}/>
+                  <PrivateRoute exact path="/watchlist" component={Watchlist}/>
+                  <Redirect exact from="/" to="/stocks" />
                 </Switch>
               </div>
             </MainLayout>
@@ -63,3 +63,4 @@ render() {
 }
 
 ReactDOM.render(<App />, document.getElementById('app'));
+{/* <PrivateRoute exact path="/" component={Dashboard} /> */}

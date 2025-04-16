@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Link, Redirect } from 'react-router-dom';
+import { Link, Redirect,withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { login } from '../../actions/auth';
@@ -17,14 +17,21 @@ export class Login extends Component {
 
   onSubmit = (e) => {
     e.preventDefault();
-    this.props.login(this.state.username, this.state.password);
+    this.props.login(this.state.username, this.state.password)
+      .then(() => {
+          // On successful login, redirect to /stocks
+          this.props.history.push('/stocks');
+      })
+      .catch(err => {
+          // Handle error if needed
+      });
   };
 
   onChange = (e) => this.setState({ [e.target.name]: e.target.value });
 
   render() {
     if (this.props.isAuthenticated) {
-      return <Redirect to="/" />;
+      return <Redirect to="/stocks" />;
     }
     const { username, password } = this.state;
     return (
@@ -73,4 +80,5 @@ const mapStateToProps = (state) => ({
   isAuthenticated: state.auth.isAuthenticated,
 });
 
-export default connect(mapStateToProps, { login })(Login);
+// export default connect(mapStateToProps, { login })(Login);
+export default connect(mapStateToProps, { login })(withRouter(Login));

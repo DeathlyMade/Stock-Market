@@ -56,21 +56,20 @@ export class Header extends Component {
         <div style={{ fontWeight: 'bold', fontSize: '1.5rem' }}>Stock Portal</div>
         <nav style={{ display: 'flex', alignItems: 'center' }}>
           {isAuthenticated && (
-            <span style={welcomeTextStyle}>
-              Welcome, {user ? user.username : 'User'}
-            </span>
+            <>
+              <span style={welcomeTextStyle}>
+                Welcome, {user ? user.username : 'User'}
+              </span>
+              <Link to="/stocks" style={navLinkStyle}>
+                Home
+              </Link>
+            </>
           )}
-          <Link to="/stocks" style={navLinkStyle}>
-            Home
-          </Link>
           <Link to="/about" style={navLinkStyle}>
             About
           </Link>
           {isAuthenticated ? (
-            <button
-              onClick={this.props.logout}
-              style={logoutButtonStyle}
-            >
+            <button onClick={this.props.logout} style={logoutButtonStyle}>
               Logout
             </button>
           ) : (

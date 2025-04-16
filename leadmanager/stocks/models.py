@@ -55,9 +55,7 @@ class PortfolioStock(models.Model):
         return f"{self.stock.ticker} in {self.portfolio.name}"
     
 class Watchlist(models.Model):
-    owner = models.ForeignKey(User, related_name="watchlists", on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
-    description = models.TextField()
+    owner = models.OneToOneField(User, related_name="watchlist", on_delete=models.CASCADE)
     stocks = models.ManyToManyField(Stock, related_name="watchlists", blank=True)
 
     def __str__(self):
