@@ -53,7 +53,7 @@ export class Header extends Component {
 
     return (
       <header style={navbarStyle}>
-        <div style={{ fontWeight: 'bold', fontSize: '1.5rem' }}>Stock Portal</div>
+        <div style={{ fontWeight: 'bold', fontSize: '1.5rem' }}>Stock Tracker</div>
         <nav style={{ display: 'flex', alignItems: 'center' }}>
           {isAuthenticated && (
             <>
