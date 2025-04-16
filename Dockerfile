@@ -16,7 +16,7 @@ COPY * /app
 # Install any needed packages specified in requirements.txt
 RUN pip install -r ./requirements.txt
 
-RUN cd leadmanager
+RUN cd StockMarket
 
 RUN python manage.py makemigrations
 RUN python manage.py migrate

@@ -1,9 +1,9 @@
 const path = require('path');
 
 module.exports = {
-  entry: './leadmanager/frontend/src/index.js', // Entry file
+  entry: './StockMarket/frontend/src/index.js', // Entry file
   output: {
-    path: path.resolve(__dirname, 'leadmanager/frontend/static/frontend'), // Output directory
+    path: path.resolve(__dirname, 'StockMarket/frontend/static/frontend'), // Output directory
     filename: 'main.js', // Output file name
   },
   module: {
