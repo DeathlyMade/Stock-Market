@@ -8,3 +8,14 @@ services:
       - .:/app
     ports:
       - "8000:8000"
+    depends_on:
+      - frontend
+
+  frontend:
+    container_name: frontend
+    image: deathlymade/frontend:latest
+    command: npm run dev
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
