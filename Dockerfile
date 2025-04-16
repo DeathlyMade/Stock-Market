@@ -1,27 +1,39 @@
 FROM python:3.10-slim-bullseye
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends --no-install-suggests \
-    build-essential \
-    pkg-config \
-    default-libmysqlclient-dev \
-    && pip install --no-cache-dir --upgrade pip
+# Install dependencies and clean up APT caches
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --no-install-suggests \
+        build-essential \
+        pkg-config \
+        netcat \
+        default-libmysqlclient-dev \
+        nodejs \
+        npm && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir --upgrade pip
 
-# Set the working directory
+# Set the working directory to /app
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY * /app
+# Install Python dependencies
+COPY requirements.txt /app/
+RUN pip install -r requirements.txt
 
-# Install any needed packages specified in requirements.txt
-RUN pip install -r ./requirements.txt
+# Copy package.json (and package-lock.json if available) and install node modules
+COPY package.json /app/
+RUN npm install
 
-RUN cd StockMarket
+# Copy the entire project code into the container
+COPY . /app/
 
-RUN python manage.py makemigrations
-RUN python manage.py migrate
-# Make port 8000 available to the world outside this container
+# Change working directory to the StockMarket folder
+WORKDIR /app/StockMarket
+
+# Run Django migrations
+RUN python manage.py makemigrations && python manage.py migrate
+
+# Expose the port the app runs on
 EXPOSE 8000
 
-# Run app.py when the container launches
-CMD ["python", "manage.py", "runserver"]
+# Run the Django development server binding to all interfaces
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
