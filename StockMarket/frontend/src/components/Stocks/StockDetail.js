@@ -15,7 +15,7 @@ function StockDetail() {
 
   // Fetch the stock details
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/api/stocks/${id}?with_prices=true`, {
+    fetch(`http://34.238.115.102:8000/api/stocks/${id}?with_prices=true`, {
       method: 'GET',
       headers: {
         'Authorization': `Token ${localStorage.getItem('token')}`,
@@ -33,7 +33,7 @@ function StockDetail() {
 
   // Fetch the watchlist to check if this stock is already added
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/watchlist/', {
+    fetch('http://34.238.115.102:8000/api/watchlist/', {
       headers: {
         'Authorization': `Token ${localStorage.getItem('token')}`,
       },
@@ -50,7 +50,7 @@ function StockDetail() {
 
   // Fetch industry data for charts
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/api/stocks/`, {
+    fetch(`http://34.238.115.102:8000/api/stocks/`, {
       method: 'GET',
       headers: {
         'Authorization': `Token ${localStorage.getItem('token')}`,
@@ -82,7 +82,7 @@ function StockDetail() {
     if (isAddedToWatchlist) return;
 
     // Note the trailing slash in the URL
-    const url = `http://127.0.0.1:8000/api/watchlist/${stock.id}/`;
+    const url = `http://34.238.115.102:8000/api/watchlist/${stock.id}/`;
 
     fetch(url, {
       method: 'POST',

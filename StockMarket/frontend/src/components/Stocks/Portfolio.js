@@ -25,7 +25,7 @@ function Portfolio() {
   // 1) Fetch Portfolios
   // ------------------------------------------------------------
   const fetchPortfolios = () => {
-    fetch('http://127.0.0.1:8000/api/portfolios/', {
+    fetch('http://34.238.115.102:8000/api/portfolios/', {
       headers: {
         Authorization: `Token ${localStorage.getItem('token')}`,
       },
@@ -54,7 +54,7 @@ function Portfolio() {
       stocks: [],
     };
 
-    fetch('http://127.0.0.1:8000/api/portfolios/', {
+    fetch('http://34.238.115.102:8000/api/portfolios/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ function Portfolio() {
       description: editPortfolioDescription,
     };
 
-    fetch(`http://127.0.0.1:8000/api/portfolios/${editPortfolioId}/`, {
+    fetch(`http://34.238.115.102:8000/api/portfolios/${editPortfolioId}/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ function Portfolio() {
       return;
     }
 
-    fetch(`http://127.0.0.1:8000/api/portfolios/${portfolioId}/`, {
+    fetch(`http://34.238.115.102:8000/api/portfolios/${portfolioId}/`, {
       method: 'DELETE',
       headers: {
         Authorization: `Token ${localStorage.getItem('token')}`,
@@ -157,7 +157,7 @@ function Portfolio() {
     setSearchQuery((prev) => ({ ...prev, [portfolioId]: query }));
 
     if (query.length > 1) {
-      fetch(`http://127.0.0.1:8000/api/stocks/?search=${query}`, {
+      fetch(`http://34.238.115.102:8000/api/stocks/?search=${query}`, {
         method: 'GET',
         headers: {
           Authorization: `Token ${localStorage.getItem('token')}`,
@@ -207,7 +207,7 @@ function Portfolio() {
       shares: parseInt(formValues.shares),
     };
 
-    fetch(`http://127.0.0.1:8000/api/portfolios/${portfolioId}/${stockId}/`, {
+    fetch(`http://34.238.115.102:8000/api/portfolios/${portfolioId}/${stockId}/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -235,7 +235,7 @@ function Portfolio() {
   // 6) Delete Stock
   // ------------------------------------------------------------
   const handleDeleteStock = (portfolioId, index) => {
-    fetch(`http://127.0.0.1:8000/api/portfolios/${portfolioId}/${index + 1}/`, {
+    fetch(`http://34.238.115.102:8000/api/portfolios/${portfolioId}/${index + 1}/`, {
       method: 'DELETE',
       headers: {
         Authorization: `Token ${localStorage.getItem('token')}`,

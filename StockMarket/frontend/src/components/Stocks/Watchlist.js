@@ -20,7 +20,7 @@ function Watchlist() {
 
     // Helper function to fetch watchlist data
     const fetchWatchlist = () => {
-        fetch('http://127.0.0.1:8000/api/watchlist/', {
+        fetch('http://34.238.115.102:8000/api/watchlist/', {
             headers: {
                 Authorization: `Token ${localStorage.getItem('token')}`,
             },
@@ -40,7 +40,7 @@ function Watchlist() {
     const handleSearchChange = (query) => {
         setSearchQuery(query);
         if (query.length > 1) {
-            fetch(`http://127.0.0.1:8000/api/stocks/?search=${query}`, {
+            fetch(`http://34.238.115.102:8000/api/stocks/?search=${query}`, {
                 headers: {
                     Authorization: `Token ${localStorage.getItem('token')}`,
                 },
@@ -55,7 +55,7 @@ function Watchlist() {
 
     // Use POST method to add a stock and update state afterward.
     const handleAddStock = (stockId) => {
-        fetch(`http://127.0.0.1:8000/api/watchlist/${stockId}`, {
+        fetch(`http://34.238.115.102:8000/api/watchlist/${stockId}`, {
             method: 'POST',
             headers: {
                 Authorization: `Token ${localStorage.getItem('token')}`,
@@ -67,7 +67,7 @@ function Watchlist() {
 
     // Define handleDeleteStock to remove a stock from the watchlist.
     const handleDeleteStock = (stockId) => {
-        fetch(`http://127.0.0.1:8000/api/watchlist/${stockId}`, {
+        fetch(`http://34.238.115.102:8000/api/watchlist/${stockId}`, {
             method: 'DELETE',
             headers: {
                 Authorization: `Token ${localStorage.getItem('token')}`,
