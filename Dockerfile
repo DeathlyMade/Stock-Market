@@ -15,16 +15,9 @@ RUN apt-get update && \
 # Set the working directory to /app
 WORKDIR /app
 
-# Install Python dependencies
-COPY requirements.txt /app/
-RUN pip install -r requirements.txt
-
-# Copy package.json (and package-lock.json if available) and install node modules
-COPY package.json /app/
-RUN npm install
-
 # Copy the entire project code into the container
 COPY . /app/
+RUN pip install -r requirements.txt
 
 # Change working directory to the StockMarket folder
 WORKDIR /app/StockMarket
