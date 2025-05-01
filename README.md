@@ -38,6 +38,7 @@ A full-stack web application that allows users to view historical stock data, cr
 
 ## Getting Started
 
+The website is hosted at https://bit.ly/4jfmTvT. However, to host the website locally, the following steps can be followed.
 ### Prerequisites
 
 - Python 3.x
